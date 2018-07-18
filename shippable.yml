@@ -1,0 +1,52 @@
+resources:
+# required: this points to the image to be deployed, which can be in any supported registry
+  - name: cd_docker_platform_image
+    type: image
+    #integration: drship_dockerhub # uncomment and replace with your integration name if you're deploying a private image
+    versionTemplate:
+      sourceName: "devopsrecipes/node_app" # replace with your Hub URL
+      isPull: false
+      versionName: "master.10"
+
+# required: this points to the cluster where you want to deploy, which can be in any supported container orchestration platform
+  - name: cd_docker_platform_cluster
+    type: cluster
+    integration: "drship_gcp"
+    versionTemplate:
+      sourceName : "cd_docker_platform_ship_cluster"  # replace with your cluster name
+      region: "us-central-1f"         # replace with your region
+      namespace: "shippable"          # replace with your namespace
+
+##optional: use this resource if you want to specify options for deployed container
+  - name: cd_docker_platform_options
+    type: dockerOptions
+    versionTemplate:
+      workingDir: "/tmp"
+      memory: 100
+      portMappings:
+        - 80:80
+
+# optional: use this if you want to set environment in the deployed container
+  - name: cd_docker_platform_params
+    type: params
+    versionTemplate:
+      params:
+        ENVIRONMENT: "test"
+
+jobs:
+# required: The manifest job is your service definition
+  - name: cd_docker_platform_manifest
+    type: manifest
+    steps:
+     - IN: cd_docker_platform_image
+     - IN: cd_docker_platform_options
+     - IN: cd_docker_platform_params
+
+# required: The deploy job deploys your application as specified in the manifest
+  - name: cd_docker_platform_deploy
+    type: deploy
+    steps:
+      - IN: cd_docker_platform_manifest
+      - IN: cd_docker_platform_cluster
+      - TASK: managed
+        deployMethod: replace
